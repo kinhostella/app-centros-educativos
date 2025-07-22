@@ -49,7 +49,7 @@ if uploaded_file is not None:
         # Identificar filas donde COORDENADA_X parece ser una longitud (>90 o <-90)
         # y COORDENADA_Y parece ser una latitud (entre -90 y 90).
         # Esto indica que las coordenadas podrían estar intercambiadas.
-        swapped_mask = (df['COORDENADA_X'].abs() > 90) & (df['COORDENADA_Y'].abs() <= 90)
+        swapped_mask = (df['COORDENADA_X'] < 0) & (df['COORDENADA_Y'] > 0)
 
         # Aplicar el intercambio para las filas identificadas
         # Se usa una variable temporal para el intercambio seguro de columnas
