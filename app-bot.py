@@ -141,9 +141,13 @@ df = df.rename(columns={'COORDENADA_X': 'latitude', 'COORDENADA_Y': 'longitude'}
 # --- Sidebar para el chat ---
 st.sidebar.header("Chatbot de Filtros")
 
-# Inicializar el historial de chat en session_state
+
+# Inicializar el historial de chat y el dataframe filtrado en session_state
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "df_filtrado" not in st.session_state:
+    st.session_state.df_filtrado = df.copy()
+
 
 # Muestra mensajes del historial
 for message in st.session_state.messages:
@@ -189,49 +193,44 @@ df_filtrado = df.copy()
 
 # Aceptar la entrada del usuario en el chat
 if prompt := st.sidebar.chat_input("Escribe tu filtro (ej. 'a 50 km')"):
-    # Agregar el mensaje del usuario al historial
+    # Borra el historial antes de agregar la nueva consulta
     st.session_state.messages.clear()
+    
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.sidebar.chat_message("user"):
         st.markdown(prompt)
 
-    # Llama a Gemini para obtener los filtros
+   
     filters = get_filters_from_gemini(prompt)
 
-    # Lógica para aplicar el filtro
-    if filters and "valor" in filters and "unidad" in filters:
-        valor = filters['valor']
-        unidad = filters['unidad']
+    with st.sidebar.chat_message("assistant"):
+        if filters and "valor" in filters and "unidad" in filters:
+            valor = filters['valor']
+            unidad = filters['unidad']
 
-        with st.sidebar.chat_message("assistant"):
             if unidad == "km":
                 st.markdown(f"**Aplicando filtro:** Mostrando centros a un máximo de **{valor} km** de Santiago.")
-                df_filtrado = df[df['Distancia_Santiago_km'] <= valor]
+                st.session_state.df_filtrado = df[df['Distancia_Santiago_km'] <= valor]
             elif unidad == "minutos":
-                # Asumimos una velocidad promedio para convertir minutos a km
-                # Esta es una aproximación, ¡no un cálculo exacto!
-                velocidad_promedio_kmh = 60
-                distancia_equivalente_km = (valor / 60) * velocidad_promedio_kmh
-                st.markdown(f"**Aplicando filtro:** Mostrando centros a un máximo de **{valor} minutos** (~{distancia_equivalente_km:.0f} km) de Santiago.")
-                df_filtrado = df[df['Tiempo_Santiago_min'] <= valor]
+                st.markdown(f"**Aplicando filtro:** Mostrando centros a un máximo de **{valor} minutos** de Santiago.")
+                st.session_state.df_filtrado = df[df['Tiempo_Santiago_min'] <= valor]
             else:
                 st.markdown("No he podido entender tu petición. Por favor, especifica la distancia en 'km' o el tiempo en 'minutos'.")
-    else:
-        with st.sidebar.chat_message("assistant"):
-            st.markdown(f"{filters}.")
+        else:
+            st.markdown("No he encontrado filtros válidos en tu mensaje. Por favor, intenta una pregunta como 'Quiero los centros a 50 km'.")
 else:
-    # Si no hay prompt, se muestra el dataframe y el mapa completo
-    df_filtrado = df.copy()
+    # Si no hay prompt activo, usar el dataframe del estado de sesión
+    pass
 
 # Muestra el número de centros encontrados
-st.subheader(f"Centros encontrados: {len(df_filtrado)}")
+st.subheader(f"Centros encontrados: {len(st.session_state.df_filtrado)}")
 
 # --- Mostrar el mapa con Folium y Tooltips ---
-if not df_filtrado.empty:
-    map_center_lat = df_filtrado['latitude'].mean()
-    map_center_lon = df_filtrado['longitude'].mean()
+if not st.session_state.df_filtrado.empty:
+    map_center_lat = st.session_state.df_filtrado['latitude'].mean()
+    map_center_lon = st.session_state.df_filtrado['longitude'].mean()
     m = folium.Map(location=[map_center_lat, map_center_lon], zoom_start=8)
-    for idx, row in df_filtrado.iterrows():
+    for idx, row in st.session_state.df_filtrado.iterrows():
         tooltip_html = f"""
         <b>{row['Nome']}</b><br>
         Distancia: {row['Distancia_Santiago_km']:.1f} km<br>
@@ -249,15 +248,15 @@ else:
 
 # --- Mostrar la tabla con los centros filtrados ---
 st.subheader("Detalles de los Centros Filtrados")
-if not df_filtrado.empty:
+if not st.session_state.df_filtrado.empty:
     columnas_tabla = [
         'Código', 'Nome', 'Enderezo', 'Concello', 'Provincia',
         'Distancia_Santiago_km', 'Tiempo_Santiago_min', 'Tipo de centro',
         'TITULARIDADE', 'ENSINO_CONCERTADO', 'DEPENDENTE'
     ]
-    st.dataframe(df_filtrado[columnas_tabla], use_container_width=True)
+    st.dataframe(st.session_state.df_filtrado[columnas_tabla], use_container_width=True)
 else:
     st.info("La tabla se actualizará cuando haya centros que cumplan los filtros.")
 
 st.markdown("---")
-st.markdown("Feito por min, máis ou menos.")
+st.markdown("Desarrollado con Streamlit y la API de Gemini.")
