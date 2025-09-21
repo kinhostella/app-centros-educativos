@@ -31,7 +31,7 @@ st.markdown(
 
 # Configuración de la API de Gemini
 # --- Configuración de la API de Gemini ---
-API_KEY = 'AIzaSyCPGUZKN8l1BJGkOE8gTkuXvylxjNj12Fo' # Reemplaza con tu clave
+API_KEY = '' # Reemplaza con tu clave
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash')
 
