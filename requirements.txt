@@ -3,3 +3,4 @@ streamlit_folium
 folium
 streamlit==1.22.0
 altair==4.2.2
+imghdr
