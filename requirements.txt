@@ -1,5 +1,5 @@
 pandas
-streamlit
 streamlit_folium
 folium
-altair
+streamlit==1.22.0
+altair==4.2.2
